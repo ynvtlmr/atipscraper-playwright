@@ -27,11 +27,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: C:\Users\runneradmin\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Cache Pkg Binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.pkg-cache
+          key: ${{ runner.os }}-pkg-cache-${{ matrix.node-version }}
 
       - name: Install Dependencies and Playwright Browsers
         run: |
           npm install
-          npx playwright install --with-deps chromium # Install Playwright and the browser engine
+          if (-not (Test-Path "C:\Users\runneradmin\AppData\Local\ms-playwright")) {
+            npx playwright install --with-deps chromium
+          } else {
+            echo "Playwright browsers restored from cache."
+          }
           npx playwright test # Run functional tests before packaging
 
       - name: Compile Executable with @yao-pkg/pkg
