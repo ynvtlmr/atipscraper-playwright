@@ -28,7 +28,7 @@ const DROPDOWN_KEYS = [
 ];
 
 async function logSubmittedUrl(link) {
-    const csvPath = path.join(__dirname, 'urls.csv');
+    const csvPath = path.join(process.cwd(), 'urls.csv');
     // Append the URL followed by a newline
     try {
         await fs.appendFile(csvPath, `${link}\n`, 'utf-8');
@@ -40,8 +40,13 @@ async function logSubmittedUrl(link) {
 async function transcribeAndSubmit(formData, refLinks) {
     let browser;
     try {
-        // Launch a headless browser
-        browser = await playwright.chromium.launch();
+        // Launch a headless browser - try system chrome first
+        try {
+             browser = await playwright.chromium.launch({ headless: true, channel: 'chrome' });
+        } catch(e) {
+             console.log("Could not find system Chrome, trying default bundled...");
+             browser = await playwright.chromium.launch({ headless: true });
+        }
         const context = await browser.newContext();
         const page = await context.newPage();
         

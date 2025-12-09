@@ -44,8 +44,17 @@ async function main() {
     const allLinks = await scrapeLinks(url);
     console.log(`\nFound ${allLinks.length} total unique links from search results.`);
 
+    // Save scraped links to a separate CSV for record keeping
+    const scrapedCsvPath = path.join(process.cwd(), 'scraped_results.csv');
+    try {
+        await fs.writeFile(scrapedCsvPath, allLinks.join('\n'), 'utf-8');
+        console.log(`Saved all scraped links to ${scrapedCsvPath}`);
+    } catch (err) {
+        console.error(`Failed to save scraped links: ${err.message}`);
+    }
+
     // 3. Filter out the URLs that have already been submitted
-    const csvPath = path.join(__dirname, 'urls.csv');
+    const csvPath = path.join(process.cwd(), 'urls.csv');
     const submittedUrls = await loadSubmittedUrls(csvPath);
     
     const newLinks = allLinks.filter(link => !submittedUrls.has(link));

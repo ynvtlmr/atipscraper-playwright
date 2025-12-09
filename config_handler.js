@@ -3,7 +3,7 @@
 const fs = require('fs/promises');
 const path = require('path');
 
-const CONFIG_FILE = path.join(__dirname, 'form_data.json');
+const CONFIG_FILE = path.join(process.cwd(), 'form_data.json');
 
 async function loadFormData() {
     try {

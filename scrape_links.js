@@ -16,38 +16,80 @@ async function extractLinksFromPage(page, uniqueLinks) {
 async function scrapeLinks(url) {
     let browser;
     let uniqueLinks = new Set();
+    
+    // Helper for random wait 1-3 seconds
+    const randomWait = async (page) => {
+        const ms = 1000 + Math.random() * 2000;
+        await page.waitForTimeout(ms);
+    };
 
     try {
-        browser = await playwright.chromium.launch();
-        const page = await browser.newPage();
+        // Use system Chrome/Edge if available to avoid needing bundled browser
+        browser = await playwright.chromium.launch({ headless: true, channel: 'chrome' }); 
+    } catch (e) {
+        console.log("Could not launch system Chrome, trying default bundled...");
+        browser = await playwright.chromium.launch({ headless: true });
+    }
 
-        // Use Playwright's auto-wait for navigation
+    try {
+        const page = await browser.newPage();
+        
+        console.log(`Navigating to ${url}...`);
         await page.goto(url, { waitUntil: "domcontentloaded" });
+
+        // Initial wait to look human
+        await randomWait(page);
 
         const NEXT_BUTTON_SELECTOR = "li.pager__item--next > a";
 
         // Wait for at least one link to appear before starting the loop
-        await page.waitForSelector("a[href*='/en/search/ati/reference/']", { timeout: 15000 });
+        try {
+            await page.waitForSelector("a[href*='/en/search/ati/reference/']", { timeout: 15000 });
+        } catch(e) {
+            console.warn("No results found on the first page. Checking content...");
+        }
 
+        let pageNum = 1;
         while (true) {
+            const countBefore = uniqueLinks.size;
             await extractLinksFromPage(page, uniqueLinks);
+            const countAfter = uniqueLinks.size;
+            
+            console.log(`Page ${pageNum}: Found ${countAfter - countBefore} new links. (Total: ${countAfter})`);
 
             const nextButtonLocator = page.locator(NEXT_BUTTON_SELECTOR);
-
             const isVisible = await nextButtonLocator.isVisible();
-            const isDisabled = await nextButtonLocator.get_attribute('aria-disabled') === "true";
             
-            // Check for the 'pager__item--last' class on the parent <li> element
-            const parentLiLocator = nextButtonLocator.locator('xpath=..');
-            const isLastPage = await parentLiLocator.evaluate(el => el.classList.contains('pager__item--last'));
-
+            // Check for disabled state safely
+            let isDisabled = false;
+            if (isVisible) {
+                 const ariaDisabled = await nextButtonLocator.getAttribute('aria-disabled');
+                 isDisabled = ariaDisabled === "true";
+            }
+            
+            // Check for the 'pager__item--last' class on the parent <li> element to prevent infinite loops
+            let isLastPage = false;
+            if (isVisible) {
+                const parentLiLocator = nextButtonLocator.locator('xpath=..');
+                // Check class safely
+                const classAttribute = await parentLiLocator.getAttribute('class');
+                if (classAttribute && classAttribute.includes('pager__item--last')) {
+                    isLastPage = true;
+                }
+            }
 
             if (isVisible && !isDisabled && !isLastPage) {
+                await randomWait(page); // Wait before clicking next
                 await nextButtonLocator.click();
-
-                // Wait for a new link element to appear to ensure navigation is complete.
-                await page.waitForSelector("a[href*='/en/search/ati/reference/']");
+                
+                // Wait for the URL to change or new content. 
+                // A simple wait is often more robust for pagers that don't change URL drastically or use AJAX
+                await page.waitForLoadState('domcontentloaded');
+                await randomWait(page); // Wait after load
+                
+                pageNum++;
             } else {
+                console.log("No next page button or end of pagination reached.");
                 break;
             }
         }
