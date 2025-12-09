@@ -9,10 +9,10 @@
   "address": "123 Example St",
   "address_2": "",
   "city": "Ottawa",
-  "state_province": "Ontario",
   "postal_code": "K1A 0A6",
+  "state_province": "Ontario",
   "country": "Canada",
   "preferred_language": "English",
   "consent": "Yes",
-  "additional_comments": "Please process the requests quickly.\n"
+  "additional_comments": "Please process the requests quickly.\r\n"
 }

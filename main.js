@@ -42,8 +42,14 @@ const { startConfigServer } = require('./config_editor');
 
 // --- Main Pipeline ---
 
-async function runPipeline() {
+// --- Main Pipeline ---
+
+async function runPipeline(options = {}) {
+    const { mode } = options;
+    const isDryRun = mode === 'test';
+    
     console.log("--- ATIP Scraper (Node.js/Playwright) ---");
+    console.log(`Mode: ${mode.toUpperCase()}`);
     
     // 1. Configuration Phase
     const formData = await loadFormData();
@@ -71,7 +77,10 @@ async function runPipeline() {
     }
 
     // 4. Execution Phase (Visual)
-    await transcribeAndSubmit(formData, newLinks, { headless: false });
+    await transcribeAndSubmit(formData, newLinks, { 
+        headless: false,
+        dryRun: isDryRun 
+    });
     
     console.log("\n--- Pipeline finished successfully! ---");
 }
@@ -79,9 +88,9 @@ async function runPipeline() {
 // --- Entry Point ---
 
 // Start the config UI and wait for user trigger
-startConfigServer(async () => {
+startConfigServer(async ({ mode } = {}) => {
     try {
-        await runPipeline();
+        await runPipeline({ mode });
     } catch (err) {
         console.error("\n--- FATAL ERROR ---");
         console.error(err);

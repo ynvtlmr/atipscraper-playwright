@@ -65,9 +65,10 @@ async function fillForm(page, formData) {
 async function submitForm(page) {
     const submitButtonSelector = "#edit-actions-submit";
     
-    // Safety check BEFORE clicking
-    if (!await page.isVisible(submitButtonSelector)) {
-        throw new Error("Submit button not found");
+    // Safety check: Wait for button to be visible (in case of dynamic appearance after form fill)
+    const submitBtn = await page.waitForSelector(submitButtonSelector, { state: 'visible', timeout: 5000 });
+    if (!submitBtn) {
+        throw new Error("Submit button not found or not visible");
     }
 
     // Capture current URL to verify navigation
@@ -91,22 +92,30 @@ async function submitForm(page) {
  * @param {import('playwright').BrowserContext} context 
  * @param {string} link 
  * @param {Object} formData 
+ * @param {Object} options
  */
-async function processSingleLink(context, link, formData) {
+async function processSingleLink(context, link, formData, options) {
     const page = await context.newPage();
     console.log(`\nNavigating to: ${link}`);
 
     try {
         await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
-        // Wait for unique element to ensure it's a real ATIP form
-        await page.waitForSelector('#edit-actions-submit', { timeout: 15000 });
+        // Wait for FORM element instead of submit button (often hidden initially)
+        // Requestor Category is the first field and must be visible
+        await page.waitForSelector('#edit-requestor-category', { timeout: 15000 });
 
         await fillForm(page, formData);
-        await submitForm(page);
-        
-        console.log(`-> Submission successful for: ${link}`);
-        await logSubmittedUrl(link); // Side effect: logging
+
+        if (options.dryRun) {
+            console.log("-> [TEST MODE] Skipping submission. Form filled successfully.");
+            // Wait briefly to allow visual inspection during auto-play
+            await page.waitForTimeout(2000); 
+        } else {
+            await submitForm(page);
+            console.log(`-> Submission successful for: ${link}`);
+            await logSubmittedUrl(link); // Side effect: logging
+        }
 
     } catch (error) {
         console.error(`-> Error processing ${link}: ${error.message}`);
@@ -119,8 +128,9 @@ async function processSingleLink(context, link, formData) {
  * Main batch orchestrator.
  * @param {Object} formData 
  * @param {string[]} links 
+ * @param {Object} options
  */
-async function transcribeAndSubmit(formData, links, options = { headless: true }) {
+async function transcribeAndSubmit(formData, links, options = { headless: true, dryRun: false }) {
     let browser;
     try {
         // Browser Launch Strategy
@@ -136,7 +146,7 @@ async function transcribeAndSubmit(formData, links, options = { headless: true }
 
         // Process sequentially to be polite (and functional)
         for (const link of links) {
-            await processSingleLink(context, link, formData);
+            await processSingleLink(context, link, formData, options);
             
             // Random wait between separate submissions
             const ms = 1000 + Math.random() * 2000;

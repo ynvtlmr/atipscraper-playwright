@@ -137,6 +137,17 @@ const getHtml = (data, message = '') => `
         </form>
         
         <form method="POST" action="/start" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+             <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-size: 1.1em; margin-bottom: 10px;">Execution Mode:</label>
+                <label style="font-weight: normal; margin-bottom: 5px;">
+                    <input type="radio" name="mode" value="test" checked> 
+                    <strong>Test Mode</strong> (Fills forms only - NO SUBMIT)
+                </label>
+                <label style="font-weight: normal;">
+                    <input type="radio" name="mode" value="live"> 
+                    <strong>Live Mode</strong> (Fills AND Submits - REAL ACTION)
+                </label>
+             </div>
              <button type="submit" style="background-color: #27ae60;">Start Scraper</button>
              <div class="help" style="text-align: center;">Opens a new browser window to run the process</div>
         </form>
@@ -164,7 +175,7 @@ function parseBody(req) {
 
 /**
  * Starts the configuration server.
- * @param {Function} onStart - Callback function when user clicks "Start Scraper"
+ * @param {Function} onStart - Callback function when user clicks "Start Scraper". Receives { mode: 'test'|'live' }
  */
 function startConfigServer(onStart) {
     const server = http.createServer(async (req, res) => {
@@ -201,11 +212,14 @@ function startConfigServer(onStart) {
             }
         } 
         else if (req.method === 'POST' && req.url === '/start') {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end("<h1>Scraper Started!</h1><p>Check the browser window that just opened...</p>");
+            const body = await parseBody(req);
+            const mode = body.mode || 'test';
             
-            // Trigger the callback
-            if (onStart) onStart();
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<h1>Scraper Started in ${mode.toUpperCase()} Mode!</h1><p>Check the browser window that just opened...</p>`);
+            
+            // Trigger the callback with mode
+            if (onStart) onStart({ mode });
         }
         else {
             res.writeHead(404);
