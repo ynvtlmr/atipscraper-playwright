@@ -6,7 +6,8 @@
     "atipscraper": "main.js"
   },
   "scripts": {
-    "package": "npx @yao-pkg/pkg . --targets node22-win-x64"
+    "package": "npx @yao-pkg/pkg . --targets node22-win-x64",
+    "config-editor": "node config_editor.js"
   },
   "pkg": {},
   "dependencies": {
