@@ -38,6 +38,10 @@ async function persistScrapedLinks(links) {
 
 // --- Main Pipeline ---
 
+const { startConfigServer } = require('./config_editor');
+
+// --- Main Pipeline ---
+
 async function runPipeline() {
     console.log("--- ATIP Scraper (Node.js/Playwright) ---");
     
@@ -47,8 +51,9 @@ async function runPipeline() {
         throw new Error("Missing 'url' in configuration.");
     }
     
-    // 2. Scraping Phase
-    const allLinks = await scrapeLinks(formData.url);
+    // 2. Scraping Phase (Visual)
+    console.log("Starting visual scraper...");
+    const allLinks = await scrapeLinks(formData.url, null, { headless: false });
     console.log(`\nFound ${allLinks.length} total unique links.`);
     
     await persistScrapedLinks(allLinks);
@@ -65,16 +70,21 @@ async function runPipeline() {
         return;
     }
 
-    // 4. Execution Phase
-    await transcribeAndSubmit(formData, newLinks);
+    // 4. Execution Phase (Visual)
+    await transcribeAndSubmit(formData, newLinks, { headless: false });
     
     console.log("\n--- Pipeline finished successfully! ---");
 }
 
 // --- Entry Point ---
 
-runPipeline().catch(err => {
-    console.error("\n--- FATAL ERROR ---");
-    console.error(err);
-    process.exit(1);
+// Start the config UI and wait for user trigger
+startConfigServer(async () => {
+    try {
+        await runPipeline();
+    } catch (err) {
+        console.error("\n--- FATAL ERROR ---");
+        console.error(err);
+        // Do not exit process, so user can potentially restart or read logs
+    }
 });

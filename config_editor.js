@@ -135,6 +135,11 @@ const getHtml = (data, message = '') => `
 
             <button type="submit">Save Configuration</button>
         </form>
+        
+        <form method="POST" action="/start" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+             <button type="submit" style="background-color: #27ae60;">Start Scraper</button>
+             <div class="help" style="text-align: center;">Opens a new browser window to run the process</div>
+        </form>
     </div>
 </body>
 </html>
@@ -157,49 +162,70 @@ function parseBody(req) {
     });
 }
 
-const server = http.createServer(async (req, res) => {
-    if (req.method === 'GET' && req.url === '/') {
-        try {
-            // Read current config, create if not exists
-            let data = {};
+/**
+ * Starts the configuration server.
+ * @param {Function} onStart - Callback function when user clicks "Start Scraper"
+ */
+function startConfigServer(onStart) {
+    const server = http.createServer(async (req, res) => {
+        if (req.method === 'GET' && req.url === '/') {
             try {
-                if (fs.existsSync(FILE_PATH)) {
-                    data = JSON.parse(fs.readFileSync(FILE_PATH, 'utf-8'));
-                }
-            } catch (e) { console.error("Error reading config:", e); }
+                // Read current config, create if not exists
+                let data = {};
+                try {
+                    if (fs.existsSync(FILE_PATH)) {
+                        data = JSON.parse(fs.readFileSync(FILE_PATH, 'utf-8'));
+                    }
+                } catch (e) { console.error("Error reading config:", e); }
 
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(getHtml(data));
+            } catch (err) {
+                res.writeHead(500);
+                res.end(`Server Error: ${err.message}`);
+            }
+        } 
+        else if (req.method === 'POST' && req.url === '/save') {
+            try {
+                const formData = await parseBody(req);
+                
+                // Save to file
+                fs.writeFileSync(FILE_PATH, JSON.stringify(formData, null, 2), 'utf-8');
+                
+                // Re-render form with success message
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(getHtml(formData, 'Configuration Saved Successfully!'));
+            } catch (err) {
+                res.writeHead(500);
+                res.end(`Error Saving: ${err.message}`);
+            }
+        } 
+        else if (req.method === 'POST' && req.url === '/start') {
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(getHtml(data));
-        } catch (err) {
-            res.writeHead(500);
-            res.end(`Server Error: ${err.message}`);
-        }
-    } 
-    else if (req.method === 'POST' && req.url === '/save') {
-        try {
-            const formData = await parseBody(req);
+            res.end("<h1>Scraper Started!</h1><p>Check the browser window that just opened...</p>");
             
-            // Save to file
-            fs.writeFileSync(FILE_PATH, JSON.stringify(formData, null, 2), 'utf-8');
-            
-            // Re-render form with success message
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(getHtml(formData, 'Configuration Saved Successfully! You can now close this window and run the scraper.'));
-        } catch (err) {
-            res.writeHead(500);
-            res.end(`Error Saving: ${err.message}`);
+            // Trigger the callback
+            if (onStart) onStart();
         }
-    } else {
-        res.writeHead(404);
-        res.end('Not Found');
-    }
-});
+        else {
+            res.writeHead(404);
+            res.end('Not Found');
+        }
+    });
 
-server.listen(PORT, () => {
-    const url = `http://localhost:${PORT}`;
-    console.log(`Config Editor running at ${url}`);
-    
-    // Auto-open browser
-    const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-    exec(`${startCmd} ${url}`);
-});
+    server.listen(PORT, () => {
+        const url = `http://localhost:${PORT}`;
+        console.log(`Config Editor running at ${url}`);
+        
+        // Auto-open browser
+        const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+        exec(`${startCmd} ${url}`);
+    });
+}
+
+// Allow standalone execution if running directly
+if (require.main === module) {
+    startConfigServer(() => console.log("Start triggered in standalone mode."));
+}
+
+module.exports = { startConfigServer };

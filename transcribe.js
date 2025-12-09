@@ -120,15 +120,15 @@ async function processSingleLink(context, link, formData) {
  * @param {Object} formData 
  * @param {string[]} links 
  */
-async function transcribeAndSubmit(formData, links) {
+async function transcribeAndSubmit(formData, links, options = { headless: true }) {
     let browser;
     try {
         // Browser Launch Strategy
         try {
-            browser = await playwright.chromium.launch({ headless: true, channel: 'chrome' }); 
+            browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome' }); 
         } catch (e) {
             console.log("System Chrome not found, using bundled browser...");
-            browser = await playwright.chromium.launch({ headless: true });
+            browser = await playwright.chromium.launch({ headless: options.headless });
         }
 
         const context = await browser.newContext();
