@@ -18,7 +18,7 @@ const ID_MAP = {
     "country": "#edit-address-fieldset-country",
     "preferred_language": "#edit-preferred-language-of-correspondence",
     "consent": "#edit-consent",
-    "additional_comments": "#edit-description", // Common ID for comments field
+    "additional_comments": "#edit-additional-comments", // Updated to match atip_request_example.html
 };
 
 const DROPDOWN_KEYS = [
