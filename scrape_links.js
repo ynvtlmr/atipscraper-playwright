@@ -8,7 +8,9 @@ async function extractLinksFromPage(page, uniqueLinks) {
     for (const aElement of aElements) {
         const href = await aElement.getAttribute("href");
         if (href && href.includes("/en/search/ati/reference/")) {
-            uniqueLinks.add(href);
+            // Convert to absolute URL
+            const absoluteUrl = new URL(href, page.url()).toString();
+            uniqueLinks.add(absoluteUrl);
         }
     }
 }
