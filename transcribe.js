@@ -151,3 +151,5 @@ async function transcribeAndSubmit(formData, links) {
 }
 
 module.exports = transcribeAndSubmit;
+module.exports.fillForm = fillForm;
+module.exports.submitForm = submitForm;
