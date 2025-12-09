@@ -2,9 +2,11 @@
   "name": "atipscraper",
   "version": "1.0.0",
   "main": "main.js",
-  "bin": "main.js",
+  "bin": {
+    "atipscraper": "main.js"
+  },
   "scripts": {
-    "package": "pkg ."
+    "package": "npx @yao-pkg/pkg . --targets node22-win-x64"
   },
   "pkg": {
     "assets": [
@@ -13,6 +15,11 @@
     ]
   },
   "dependencies": {
-    "playwright": "^1.40.0"
-  }
+    "pkg": "^5.8.1",
+    "playwright": "^1.57.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

@@ -1,0 +1,53 @@
+name: Build and Package Executable
+
+on:
+  push:
+    # Trigger this workflow whenever code is pushed to the 'main' or 'master' branch
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    # Allows manual triggering from the GitHub Actions UI
+
+jobs:
+  build_windows:
+    # Use the latest version of Windows
+    runs-on: windows-latest
+
+    # Specify the exact Node version to ensure pkg compatibility
+    strategy:
+      matrix:
+        node-version: [20.x] # Use a stable LTS version for compilation
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies and Playwright Browsers
+        run: |
+          npm install
+          npx playwright install --with-deps chromium # Install Playwright and the browser engine
+
+      - name: Compile Executable with @yao-pkg/pkg
+        # We explicitly use the fork for stability and target the Windows x64 platform
+        run: npx @yao-pkg/pkg . --targets node${{ matrix.node-version }}-win-x64
+
+      - name: Find Executable Name
+        # Use a simple PowerShell command to find the resulting executable
+        id: find_exe
+        run: |
+          $exePath = Get-ChildItem -Path dist -Filter *.exe | Select-Object -ExpandProperty FullName
+          echo "EXECUTABLE_PATH=$exePath" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATIPScraper-Windows-Executable
+          path: ${{ steps.find_exe.outputs.EXECUTABLE_PATH }}
+          # The compiled EXE file is uploaded as a downloadable file
