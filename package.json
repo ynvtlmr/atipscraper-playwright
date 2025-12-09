@@ -1,0 +1,18 @@
+{
+  "name": "atipscraper",
+  "version": "1.0.0",
+  "main": "main.js",
+  "bin": "main.js",
+  "scripts": {
+    "package": "pkg ."
+  },
+  "pkg": {
+    "assets": [
+      "form_data.json",
+      "urls.csv"
+    ]
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}
