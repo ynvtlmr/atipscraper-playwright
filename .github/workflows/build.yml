@@ -32,6 +32,7 @@ jobs:
         run: |
           npm install
           npx playwright install --with-deps chromium # Install Playwright and the browser engine
+          npx playwright test # Run functional tests before packaging
 
       - name: Compile Executable with @yao-pkg/pkg
         # We explicitly use the fork for stability and target the Windows x64 platform

@@ -37,8 +37,8 @@ const getHtml = (data, message = '') => `
             
             <div class="form-group">
                 <label for="url">Target URL</label>
-                <input type="text" id="url" name="url" value="${data.url || ''}" required>
-                <div class="help">The search URL from open.canada.ca</div>
+                <input type="url" id="url" name="url" value="${data.url || ''}" required placeholder="https://open.canada.ca/en/search/ati?..." pattern="https://.*">
+                <div class="help">The search URL from open.canada.ca (Must start with https://)</div>
             </div>
 
             <div class="form-group">

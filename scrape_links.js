@@ -37,7 +37,10 @@ async function extractLinksFromPage(page) {
  * @returns {Promise<{nextButton: import('playwright').Locator, shouldProceed: boolean}>}
  */
 async function getPaginationState(page) {
-    const nextButton = page.locator("li.pager__item--next > a");
+    // Try robust selector (Accessibility) OR generic class (Drupal standard)
+    const nextButton = page.getByRole('link', { name: 'Next', exact: true })
+                           .or(page.locator("li.pager__item--next > a"))
+                           .first();
     
     // Check various disabled conditions
     const isVisible = await nextButton.isVisible();
