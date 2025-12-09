@@ -7,10 +7,9 @@ test.describe('Scrape Links Functional Tests', () => {
   const indexHtmlPath = path.resolve(__dirname, '../examples/atip_index_example.html');
   const indexUrl = pathToFileURL(indexHtmlPath).toString();
 
-  test('should scrape exactly 7 links from the example index page', async () => {
-    // scrapeLinks manages its own browser context, so we just call it.
-    // However, it's designed to take a URL.
-    const links = await scrapeLinks(indexUrl);
+  test('should scrape exactly 7 links from the example index page', async ({ page }) => {
+    // scrapeLinks now accepts a page fixture for faster testing
+    const links = await scrapeLinks(indexUrl, page);
     
     expect(links).toHaveLength(7);
     

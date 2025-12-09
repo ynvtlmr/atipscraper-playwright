@@ -68,20 +68,22 @@ async function getPaginationState(page) {
  * @param {string} url 
  * @returns {Promise<string[]>}
  */
-async function scrapeLinks(url) {
+async function scrapeLinks(url, existingPage = null) {
     let browser;
     const allUniqueLinks = new Set();
+    let page = existingPage;
     
     try {
-        // Browser Launch Strategy
-        try {
-            browser = await playwright.chromium.launch({ headless: true, channel: 'chrome' }); 
-        } catch (e) {
-            console.log("System Chrome not found, using bundled browser...");
-            browser = await playwright.chromium.launch({ headless: true });
+        if (!page) {
+            // Browser Launch Strategy
+            try {
+                browser = await playwright.chromium.launch({ headless: true, channel: 'chrome' }); 
+            } catch (e) {
+                console.log("System Chrome not found, using bundled browser...");
+                browser = await playwright.chromium.launch({ headless: true });
+            }
+            page = await browser.newPage();
         }
-
-        const page = await browser.newPage();
         
         console.log(`Navigating to initial URL: ${url}`);
         await page.goto(url, { waitUntil: "domcontentloaded" });
