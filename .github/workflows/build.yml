@@ -52,3 +52,15 @@ jobs:
           name: ATIPScraper-Windows-Executable
           path: ${{ steps.find_exe.outputs.EXECUTABLE_PATH }}
           # The compiled EXE file is uploaded as a downloadable file
+
+      - name: Create/Update Release
+        uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: latest
+          name: Latest Build
+          draft: false
+          prerelease: false
+          files: ${{ steps.find_exe.outputs.EXECUTABLE_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
