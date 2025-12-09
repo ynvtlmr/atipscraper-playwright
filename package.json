@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "main.js",
   "bin": {
-    "atipscraper": "main.js"
+    "atipscraper": "main.js",
+    "config-editor": "config_editor.js"
   },
   "scripts": {
     "package": "npx @yao-pkg/pkg . --targets node22-win-x64",
