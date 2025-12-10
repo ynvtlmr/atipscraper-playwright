@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
     # Allows manual triggering from the GitHub Actions UI
 
+permissions:
+  contents: write
+
 jobs:
   build_windows:
     # Use the latest version of Windows
