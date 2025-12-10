@@ -149,7 +149,7 @@ async function waitForUserAction(page) {
             document.body.appendChild(container);
 
             // Timer Logic
-            let timeLeft = 3;
+            let timeLeft = 5; // UPDATED to 5 seconds
             const updateTimer = () => {
                 title.textContent = `Submitting in ${timeLeft}...`;
                 if (timeLeft <= 0) {
@@ -179,11 +179,12 @@ async function waitForUserAction(page) {
  * @param {string} link 
  * @param {Object} formData 
  * @param {Object} options
- * @returns {Promise<'CONTINUE'|'STOP'>} 
+ * @returns {Promise<{action: 'CONTINUE'|'STOP', result: Object|null}>} 
  */
 async function processSingleLink(context, link, formData, options) {
     const page = await context.newPage();
     console.log(`\nNavigating to: ${link}`);
+    let result = null;
 
     try {
         await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -195,36 +196,86 @@ async function processSingleLink(context, link, formData, options) {
         await fillForm(page, formData);
 
         // --- Interactive Step ---
-        // If headless, we can't really do interactive, so strict 3s wait? 
-        // Or assume this feature implies headed mode (which is forced in main.js anyway)
         const action = await waitForUserAction(page);
-        
         console.log(`-> User Action: ${action}`);
 
         if (action === 'STOP') {
-            return 'STOP';
+            return { action: 'STOP', result: null };
         }
         
         if (action === 'SKIP') {
-            return 'CONTINUE';
+            return { action: 'CONTINUE', result: { url: link, status: 'SKIPPED', timestamp: new Date().toISOString() } };
         }
 
         // Action is SUBMIT (either auto or manual)
         if (options.dryRun) {
             console.log("-> [TEST MODE] Skipping submission (User allowed submit).");
-            await page.waitForTimeout(1000); 
+            await page.waitForTimeout(1000);
+            result = { url: link, status: 'TEST_SUBMITTED', timestamp: new Date().toISOString() };
         } else {
             await submitForm(page);
             console.log(`-> Submission successful for: ${link}`);
             await logSubmittedUrl(link); // Side effect: logging
+            result = { url: link, status: 'SUBMITTED', timestamp: new Date().toISOString() };
         }
 
     } catch (error) {
         console.error(`-> Error processing ${link}: ${error.message}`);
+        result = { url: link, status: `ERROR: ${error.message}`, timestamp: new Date().toISOString() };
     } finally {
         await page.close();
     }
-    return 'CONTINUE';
+    return { action: 'CONTINUE', result };
+}
+
+function generateSummaryHtml(results) {
+    const rows = results.map(r => `
+        <tr class="${r.status.toLowerCase().includes('error') ? 'error' : r.status.toLowerCase()}">
+            <td><a href="${r.url}" target="_blank">${r.url}</a></td>
+            <td>${new Date(r.timestamp).toLocaleString()}</td>
+            <td>${r.status}</td>
+        </tr>
+    `).join('');
+
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Submission Summary</title>
+        <style>
+            body { font-family: -apple-system, system-ui, sans-serif; padding: 40px; background: #f4f7f6; }
+            h1 { text-align: center; color: #2c3e50; }
+            table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; }
+            th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f8f9fa; font-weight: 600; color: #555; }
+            tr:hover { background-color: #f1f1f1; }
+            .submitted { color: #27ae60; font-weight: bold; }
+            .test_submitted { color: #2980b9; font-weight: bold; }
+            .skipped { color: #f39c12; }
+            .error { color: #c0392b; }
+            button { display: block; margin: 0 auto; padding: 12px 24px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+            button:hover { background: #2c3e50; }
+        </style>
+    </head>
+    <body>
+        <h1>Submission Summary</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+        <button onclick="window.close()">Close Summary & Exit</button>
+    </body>
+    </html>
+    `;
 }
 
 /**
@@ -246,20 +297,34 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
 
         const context = await browser.newContext();
         console.log(`Starting submission of ${links.length} forms...`);
+        
+        const results = [];
 
         // Process sequentially to be polite (and functional)
         for (const link of links) {
-            const flowControl = await processSingleLink(context, link, formData, options);
+            const { action, result } = await processSingleLink(context, link, formData, options);
             
-            if (flowControl === 'STOP') {
+            if (result) results.push(result);
+
+            if (action === 'STOP') {
                 console.log("\n! Stop signal received. Halting batch processing.");
                 break;
             }
 
             // Random wait between separate submissions (if not stopped)
-            // We use a shorter wait now because the interactive countdown adds delay naturally
-            // But let's keep a small minimal one for politeness if they clicked 'Submit Now' instantly
             await new Promise(r => setTimeout(r, 1000)); 
+        }
+        
+        // --- Summary Page ---
+        if (results.length > 0) {
+            console.log("\nGenerating summary page...");
+            const summaryPage = await context.newPage();
+            await summaryPage.setContent(generateSummaryHtml(results));
+            
+            // Wait indefinitely for user to close the page manually (which closes context/browser indirectly if single tab)
+            // OR specifically wait for the page close event
+            console.log("Waiting for user to close the summary page...");
+            await new Promise(resolve => summaryPage.on('close', resolve));
         }
 
     } catch (e) {
