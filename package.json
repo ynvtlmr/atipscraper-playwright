@@ -13,7 +13,6 @@
   },
   "pkg": {},
   "dependencies": {
-    "pkg": "^5.8.1",
     "playwright": "^1.57.0"
   },
   "keywords": [],
@@ -21,6 +20,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@playwright/test": "^1.57.0"
+    "@playwright/test": "^1.57.0",
+    "pkg": "^5.8.1"
   }
 }
