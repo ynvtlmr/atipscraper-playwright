@@ -12,9 +12,11 @@ test.use({
     }
 });
 
+// Skip the entire suite on CI to avoid "Missing X server" errors
+test.skip(!!process.env.CI, 'Visual tests require headed mode, skipping on CI');
+
 test('Live E2E Visual Verification (No Submit)', async ({ page }) => {
-    // Skip on CI as this requires visual inspection
-    if (process.env.CI) test.skip();
+    // Disable default timeout to allow indefinite manual inspection
 
     // Disable default timeout to allow indefinite manual inspection
     test.setTimeout(0); 
