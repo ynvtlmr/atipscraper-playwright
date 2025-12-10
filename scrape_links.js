@@ -1,5 +1,7 @@
 // scrape_links.js
 const playwright = require('playwright');
+const logger = require('./logger');
+const selectors = require('./selectors.json');
 
 /**
  * Pure helper to wait for a random duration (Human behavior simulation)
@@ -18,11 +20,12 @@ const randomWait = async (page) => {
  */
 async function extractLinksFromPage(page) {
     const links = [];
-    const aElements = await page.locator("a").all();
+    // Use the specific selector to find relevant links directly
+    const aElements = await page.locator(selectors.search.links).all();
     
     for (const aElement of aElements) {
         const href = await aElement.getAttribute("href");
-        if (href && href.includes("/en/search/ati/reference/")) {
+        if (href) {
             // Convert to absolute URL using the page context
             const absoluteUrl = new URL(href, page.url()).toString();
             links.push(absoluteUrl);
@@ -37,10 +40,8 @@ async function extractLinksFromPage(page) {
  * @returns {Promise<{nextButton: import('playwright').Locator, shouldProceed: boolean}>}
  */
 async function getPaginationState(page) {
-    // Try robust selector (Accessibility) OR generic class (Drupal standard)
-    const nextButton = page.getByRole('link', { name: 'Next', exact: true })
-                           .or(page.locator("li.pager__item--next > a"))
-                           .first();
+    // Use the unified selector from config
+    const nextButton = page.locator(selectors.search.next_button).first();
     
     // Check various disabled conditions
     const isVisible = await nextButton.isVisible();
@@ -80,22 +81,22 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
             try {
                 browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome', args: launchArgs }); 
             } catch (e) {
-                console.log("System Chrome not found, using bundled browser...");
+                logger.info("System Chrome not found, using bundled browser...");
                 browser = await playwright.chromium.launch({ headless: options.headless, args: launchArgs });
             }
             page = await browser.newPage();
         }
         
-        console.log(`Navigating to initial URL: ${url}`);
+        logger.info(`Navigating to initial URL: ${url}`);
         await page.goto(url, { waitUntil: "domcontentloaded" });
         await page.evaluate(() => window.focus()); // Bring to front
         await randomWait(page);
 
         // Ensure we have results or wait a bit
         try {
-            await page.waitForSelector("a[href*='/en/search/ati/reference/']", { timeout: 15000 });
+            await page.waitForSelector(selectors.search.links, { timeout: 15000 });
         } catch (e) {
-            console.warn("Warning: Initial search results selector timed out. Page might be empty.");
+            logger.warn("Warning: Initial search results selector timed out. Page might be empty.");
         }
 
         let pageNum = 1;
@@ -108,7 +109,7 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
             pageLinks.forEach(link => allUniqueLinks.add(link));
             const countAfter = allUniqueLinks.size;
 
-            console.log(`Page ${pageNum}: Extracted ${pageLinks.length} links. (${countAfter - countBefore} new unique)`);
+            logger.info(`Page ${pageNum}: Extracted ${pageLinks.length} links. (${countAfter - countBefore} new unique)`);
 
             // 2. Determine Next Step
             const { nextButton, shouldProceed } = await getPaginationState(page);
@@ -122,13 +123,13 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
                 await randomWait(page);
                 pageNum++;
             } else {
-                console.log("Pagination ended.");
+                logger.info("Pagination ended.");
                 scraping = false;
             }
         }
 
     } catch (e) {
-        console.error(`Scraping Error: ${e.message}`);
+        logger.error(`Scraping Error: ${e.message}`);
     } finally {
         if (browser) await browser.close();
     }

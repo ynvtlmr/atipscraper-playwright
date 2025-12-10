@@ -2,9 +2,33 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const net = require('net');
 
-const PORT = 3000;
+const DEFAULT_PORT = 3000;
 const FILE_PATH = path.join(process.cwd(), 'form_data.json');
+
+/**
+ * Finds the first available port counting up from startPort.
+ * @param {number} startPort 
+ * @returns {Promise<number>}
+ */
+function findAvailablePort(startPort) {
+    return new Promise((resolve, reject) => {
+        const server = net.createServer();
+        server.unref(); // Don't let this keep the process alive
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                resolve(findAvailablePort(startPort + 1));
+            } else {
+                reject(err);
+            }
+        });
+        server.listen(startPort, () => {
+            const port = server.address().port;
+            server.close(() => resolve(port));
+        });
+    });
+}
 
 // HTML Template for the Configuration Form
 const getHtml = (data, message = '') => `
@@ -27,6 +51,9 @@ const getHtml = (data, message = '') => `
         button:hover { background: #2980b9; }
         .message { padding: 15px; background: #d4edda; color: #155724; border-radius: 4px; margin-bottom: 20px; text-align: center; display: ${message ? 'block' : 'none'}; }
         .help { font-size: 0.8em; color: #888; margin-top: 4px; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .checkbox-group input { width: auto; margin: 0; }
+        .checkbox-group label { margin: 0; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -147,6 +174,10 @@ const getHtml = (data, message = '') => `
                     <input type="radio" name="mode" value="live"> 
                     <strong>Live Mode</strong> (Fills AND Submits - REAL ACTION)
                 </label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="headless" name="headless" value="true">
+                    <label for="headless">Run Headless (Invisible Browser)</label>
+                </div>
              </div>
              <button type="submit" style="background-color: #27ae60;">Start Scraper</button>
              <div class="help" style="text-align: center;">Opens a new browser window to run the process</div>
@@ -177,7 +208,9 @@ function parseBody(req) {
  * Starts the configuration server.
  * @param {Function} onStart - Callback function when user clicks "Start Scraper". Receives { mode: 'test'|'live' }
  */
-function startConfigServer(onStart) {
+async function startConfigServer(onStart) {
+    const port = await findAvailablePort(DEFAULT_PORT);
+    
     const server = http.createServer(async (req, res) => {
         if (req.method === 'GET' && req.url === '/') {
             try {
@@ -214,12 +247,13 @@ function startConfigServer(onStart) {
         else if (req.method === 'POST' && req.url === '/start') {
             const body = await parseBody(req);
             const mode = body.mode || 'test';
+            const headless = body.headless === 'true';
             
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(`<h1>Scraper Started in ${mode.toUpperCase()} Mode!</h1><p>Check the browser window that just opened...</p>`);
+            res.end(`<h1>Scraper Started in ${mode.toUpperCase()} Mode!</h1><p>Check the console/logs for progress...</p>`);
             
             // Trigger the callback with mode
-            if (onStart) onStart({ mode });
+            if (onStart) onStart({ mode, headless });
         }
         else {
             res.writeHead(404);
@@ -227,8 +261,8 @@ function startConfigServer(onStart) {
         }
     });
 
-    server.listen(PORT, () => {
-        const url = `http://localhost:${PORT}`;
+    server.listen(port, () => {
+        const url = `http://localhost:${port}`;
         console.log(`Config Editor running at ${url}`);
         
         // Auto-open browser

@@ -1,0 +1,11 @@
+[2025-12-10T02:08:48.937Z] [INFO] Navigating to initial URL: file:///C:/Users/Yaniv/Documents/CODE/AtipScraper2/examples/atip_index_example.html
+[2025-12-10T02:08:49.407Z] [INFO] Navigating to initial URL: https://open.canada.ca/en/search/ati?ati%5B0%5D=ati_disposition_en%3AAll%20disclosed&ati%5B1%5D=ati_month_en%3AMay&ati%5B2%5D=ati_organization_en%3APublic%20Services%20and%20Procurement%20Canada&ati%5B3%5D=ati_year_en%3A2023
+[2025-12-10T02:08:54.596Z] [INFO] Page 1: Extracted 7 links. (7 new unique)
+[2025-12-10T02:08:54.598Z] [INFO] Pagination ended.
+[2025-12-10T02:08:54.776Z] [INFO] Page 1: Extracted 7 links. (7 new unique)
+[2025-12-10T02:08:54.780Z] [INFO] Pagination ended.
+[2025-12-10T02:08:54.943Z] [INFO] Navigating to initial URL: http://localhost:9999/nonexistent
+[2025-12-10T02:08:57.429Z] [ERROR] Scraping Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:9999/nonexistent
+Call log:
+[2m  - navigating to "http://localhost:9999/nonexistent", waiting until "domcontentloaded"[22m
+

@@ -1,0 +1,25 @@
+{
+  "search": {
+    "links": "a[href*='/en/search/ati/reference/']",
+    "next_button": "ul.pager__items > li.pager__item--next > a, a[rel='next']",
+    "pager_item": "li.pager__item"
+  },
+  "form": {
+    "requestor_category": "#edit-requestor-category",
+    "delivery_method": "#edit-delivery-method",
+    "given_name": "#edit-given-name",
+    "family_name": "#edit-family-name",
+    "email": "#edit-your-e-mail-address",
+    "phone": "#edit-your-telephone-number",
+    "address": "#edit-address-fieldset-address",
+    "address_2": "#edit-address-fieldset-address-2",
+    "city": "#edit-address-fieldset-city",
+    "state_province": "#edit-address-fieldset-state-province-select",
+    "postal_code": "#edit-address-fieldset-postal-code",
+    "country": "#edit-address-fieldset-country",
+    "preferred_language": "#edit-preferred-language-of-correspondence",
+    "consent": "#edit-consent",
+    "additional_comments": "#edit-additional-comments",
+    "submit_button": "#edit-actions-submit"
+  }
+}

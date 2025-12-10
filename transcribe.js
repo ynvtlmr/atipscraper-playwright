@@ -2,24 +2,10 @@
 const playwright = require('playwright');
 const fs = require('fs/promises');
 const path = require('path');
+const logger = require('./logger');
+const selectors = require('./selectors.json');
 
-const ID_MAP = {
-    "requestor_category": "#edit-requestor-category",
-    "delivery_method": "#edit-delivery-method",
-    "given_name": "#edit-given-name",
-    "family_name": "#edit-family-name",
-    "email": "#edit-your-e-mail-address",
-    "phone": "#edit-your-telephone-number",
-    "address": "#edit-address-fieldset-address",
-    "address_2": "#edit-address-fieldset-address-2",
-    "city": "#edit-address-fieldset-city",
-    "state_province": "#edit-address-fieldset-state-province-select",
-    "postal_code": "#edit-address-fieldset-postal-code",
-    "country": "#edit-address-fieldset-country",
-    "preferred_language": "#edit-preferred-language-of-correspondence",
-    "consent": "#edit-consent",
-    "additional_comments": "#edit-additional-comments", // Updated to match atip_request_example.html
-};
+const ID_MAP = selectors.form;
 
 const DROPDOWN_KEYS = [
     "requestor_category", "delivery_method", "state_province",
@@ -31,7 +17,7 @@ async function logSubmittedUrl(link) {
     try {
         await fs.appendFile(csvPath, `${link}\n`, 'utf-8');
     } catch (error) {
-        console.warn(`Warning: Could not log submitted URL to urls.csv: ${error.message}`);
+        logger.warn(`Warning: Could not log submitted URL to urls.csv: ${error.message}`);
     }
 }
 
@@ -63,7 +49,7 @@ async function fillForm(page, formData) {
  * @returns {Promise<boolean>} success
  */
 async function submitForm(page) {
-    const submitButtonSelector = "#edit-actions-submit";
+    const submitButtonSelector = selectors.form.submit_button;
     
     // Safety check: Wait for button to be visible (in case of dynamic appearance after form fill)
     const submitBtn = await page.waitForSelector(submitButtonSelector, { state: 'visible', timeout: 5000 });
@@ -183,7 +169,7 @@ async function waitForUserAction(page) {
  */
 async function processSingleLink(context, link, formData, options) {
     const page = await context.newPage();
-    console.log(`\nNavigating to: ${link}`);
+    logger.info(`\nNavigating to: ${link}`);
     let result = null;
 
     try {
@@ -192,13 +178,13 @@ async function processSingleLink(context, link, formData, options) {
         
         // Wait for FORM element instead of submit button (often hidden initially)
         // Requestor Category is the first field and must be visible
-        await page.waitForSelector('#edit-requestor-category', { timeout: 15000 });
+        await page.waitForSelector(selectors.form.requestor_category, { timeout: 15000 });
 
         await fillForm(page, formData);
 
         // --- Interactive Step ---
         const action = await waitForUserAction(page);
-        console.log(`-> User Action: ${action}`);
+        logger.info(`-> User Action: ${action}`);
 
         if (action === 'STOP') {
             return { action: 'STOP', result: null };
@@ -210,18 +196,18 @@ async function processSingleLink(context, link, formData, options) {
 
         // Action is SUBMIT (either auto or manual)
         if (options.dryRun) {
-            console.log("-> [TEST MODE] Skipping submission (User allowed submit).");
+            logger.info("-> [TEST MODE] Skipping submission (User allowed submit).");
             await page.waitForTimeout(1000);
             result = { url: link, status: 'TEST_SUBMITTED', timestamp: new Date().toISOString() };
         } else {
             await submitForm(page);
-            console.log(`-> Submission successful for: ${link}`);
+            logger.info(`-> Submission successful for: ${link}`);
             await logSubmittedUrl(link); // Side effect: logging
             result = { url: link, status: 'SUBMITTED', timestamp: new Date().toISOString() };
         }
 
     } catch (error) {
-        console.error(`-> Error processing ${link}: ${error.message}`);
+        logger.error(`-> Error processing ${link}: ${error.message}`);
         result = { url: link, status: `ERROR: ${error.message}`, timestamp: new Date().toISOString() };
     } finally {
         await page.close();
@@ -293,12 +279,12 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
         try {
             browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome', args: launchArgs }); 
         } catch (e) {
-            console.log("System Chrome not found, using bundled browser...");
+            logger.info("System Chrome not found, using bundled browser...");
             browser = await playwright.chromium.launch({ headless: options.headless, args: launchArgs });
         }
 
         const context = await browser.newContext();
-        console.log(`Starting submission of ${links.length} forms...`);
+        logger.info(`Starting submission of ${links.length} forms...`);
         
         const results = [];
 
@@ -309,7 +295,7 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
             if (result) results.push(result);
 
             if (action === 'STOP') {
-                console.log("\n! Stop signal received. Halting batch processing.");
+                logger.info("\n! Stop signal received. Halting batch processing.");
                 break;
             }
 
@@ -319,18 +305,18 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
         
         // --- Summary Page ---
         if (results.length > 0) {
-            console.log("\nGenerating summary page...");
+            logger.info("\nGenerating summary page...");
             const summaryPage = await context.newPage();
             await summaryPage.setContent(generateSummaryHtml(results));
             
             // Wait indefinitely for user to close the page manually (which closes context/browser indirectly if single tab)
             // OR specifically wait for the page close event
-            console.log("Waiting for user to close the summary page...");
+            logger.info("Waiting for user to close the summary page...");
             await new Promise(resolve => summaryPage.on('close', resolve));
         }
 
     } catch (e) {
-        console.error(`Browser Batch Error: ${e.message}`);
+        logger.error(`Browser Batch Error: ${e.message}`);
     } finally {
         if (browser) await browser.close();
     }
