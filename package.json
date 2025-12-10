@@ -8,7 +8,8 @@
   },
   "scripts": {
     "package": "npx @yao-pkg/pkg . --targets node24-win-x64",
-    "config-editor": "node config_editor.js"
+    "config-editor": "node main.js",
+    "start": "node main.js"
   },
   "pkg": {},
   "dependencies": {
