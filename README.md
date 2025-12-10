@@ -16,6 +16,9 @@ It automates the following workflow:
   - **Submit Now**: Submit the current form immediately.
   - **Skip**: Skip the current form and proceed to the next one.
   - **Stop**: Halt the entire scraping process safely.
+- **Graceful Exit**: Cleanly shuts down browser instances when interrupted (Ctrl+C).
+- **Headless Mode**: Option to run the scraper visibly or in the background (headless).
+- **Robust Logging**: Detailed logs are written to both the console and `latest.log`.
 - **Deduplication**: Tracks submitted URLs in `urls.csv` so you never double-submit.
 - **Two Modes**:
   - **Test Mode**: Scrapes and fills forms but _does not_ click submit (unless you manually click "Submit Now" in the panel). Perfect for verifying your configuration.
@@ -58,9 +61,11 @@ npm start
 ```
 
 - This command will start a local server and open your default web browser to the configuration page.
+- **Microservice Port**: The tool attempts to use port 3000 but will automatically find the next available port if it's busy.
 - Enter your **Target URL** (e.g., a search result page from `open.canada.ca`) and your personal details.
+- Toggle **Headless Mode** if you prefer the browser to run in the background.
 - Select **Test Mode** (default) or **Live Mode**.
-- Click **Start Scraper**. A new browser window will open and you can watch the automation in progress.
+- Click **Start Scraper**. A new browser window will open (if not headless) and you can watch the automation in progress.
 
 ### Interactive Control Panel
 
@@ -106,12 +111,15 @@ This project uses GitHub Actions for Continuous Integration and Deployment.
 ## Project Structure
 
 - `main.js`: The entry point. Starts the config server which orchestrates the pipeline (Config -> Scrape -> Filter -> Submit).
-- `config_editor.js`: Code for the local configuration web server/UI.
+- `config_editor.js`: Code for the local configuration web server/UI. Handles dynamic port allocation.
 - `scrape_links.js`: Logic for traversing search result pages and extracting links.
 - `transcribe.js`: Logic for visiting individual request pages, filling forms, and handling the interactive control panel.
+- `logger.js`: Customized logger supporting console output and file logging (`latest.log`).
+- `selectors.json`: Centralized configuration for all DOM selectors used in scraping and form filling.
 - `form_data.json`: Stores your user configuration (auto-generated).
 - `urls.csv`: A history log of all URLs that have been successfully processed/submitted.
 - `scraped_results.csv`: A log of all links found during the last scrape.
+- `latest.log`: Log file from the most recent run (do not share if containing sensitive info).
 - `tests/`: functionality tests using Playwright.
 - `examples/`: Sample HTML files used for testing.
 
