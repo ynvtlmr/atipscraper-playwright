@@ -24,7 +24,7 @@ jobs:
     # Specify the exact Node version to ensure pkg compatibility
     strategy:
       matrix:
-        node-version: [20.x] # Use a stable LTS version for compilation
+        node-version: [24.x] # Use a stable LTS version for compilation
 
     steps:
       - name: Checkout Repository
