@@ -188,6 +188,7 @@ async function processSingleLink(context, link, formData, options) {
 
     try {
         await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        try { await page.evaluate(() => window.focus()); } catch (e) {} // Attempt to bring to front
         
         // Wait for FORM element instead of submit button (often hidden initially)
         // Requestor Category is the first field and must be visible
@@ -288,11 +289,12 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
     let browser;
     try {
         // Browser Launch Strategy
+        const launchArgs = ['--start-maximized', '--window-position=0,0'];
         try {
-            browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome' }); 
+            browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome', args: launchArgs }); 
         } catch (e) {
             console.log("System Chrome not found, using bundled browser...");
-            browser = await playwright.chromium.launch({ headless: options.headless });
+            browser = await playwright.chromium.launch({ headless: options.headless, args: launchArgs });
         }
 
         const context = await browser.newContext();

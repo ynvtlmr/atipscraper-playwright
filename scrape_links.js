@@ -76,17 +76,19 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
     try {
         if (!page) {
             // Browser Launch Strategy
+            const launchArgs = ['--start-maximized', '--window-position=0,0'];
             try {
-                browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome' }); 
+                browser = await playwright.chromium.launch({ headless: options.headless, channel: 'chrome', args: launchArgs }); 
             } catch (e) {
                 console.log("System Chrome not found, using bundled browser...");
-                browser = await playwright.chromium.launch({ headless: options.headless });
+                browser = await playwright.chromium.launch({ headless: options.headless, args: launchArgs });
             }
             page = await browser.newPage();
         }
         
         console.log(`Navigating to initial URL: ${url}`);
         await page.goto(url, { waitUntil: "domcontentloaded" });
+        await page.evaluate(() => window.focus()); // Bring to front
         await randomWait(page);
 
         // Ensure we have results or wait a bit
