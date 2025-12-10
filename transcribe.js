@@ -87,12 +87,99 @@ async function submitForm(page) {
 }
 
 /**
- * Process a single URL: Visit -> Fill -> Submit -> Log.
+ * Injects a countdown overlay and waits for user action or timeout.
+ * @param {import('playwright').Page} page
+ * @returns {Promise<'SUBMIT'|'SKIP'|'STOP'>}
+ */
+async function waitForUserAction(page) {
+    return page.evaluate(() => {
+        return new Promise((resolve) => {
+            // Create container
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.bottom = '20px';
+            container.style.right = '20px';
+            container.style.backgroundColor = '#fff';
+            container.style.border = '1px solid #ccc';
+            container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            container.style.padding = '15px';
+            container.style.borderRadius = '8px';
+            container.style.zIndex = '999999';
+            container.style.fontFamily = 'system-ui, sans-serif';
+            container.style.minWidth = '300px';
+
+            // Title / Countdown
+            const title = document.createElement('div');
+            title.style.fontSize = '18px';
+            title.style.marginBottom = '10px';
+            title.style.fontWeight = 'bold';
+            title.style.textAlign = 'center';
+            container.appendChild(title);
+
+            // Button Container
+            const btnContainer = document.createElement('div');
+            btnContainer.style.display = 'flex';
+            btnContainer.style.gap = '10px';
+            btnContainer.style.justifyContent = 'space-between';
+            container.appendChild(btnContainer);
+
+            // Helper to create buttons
+            const createBtn = (text, color, action) => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                btn.style.padding = '8px 12px';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '4px';
+                btn.style.color = 'white';
+                btn.style.backgroundColor = color;
+                btn.style.cursor = 'pointer';
+                btn.style.fontSize = '14px';
+                btn.onclick = () => cleanup(action);
+                return btn;
+            };
+
+            const submitBtn = createBtn('Submit Now', '#2ecc71', 'SUBMIT');
+            const skipBtn = createBtn('Skip', '#f1c40f', 'SKIP');
+            const stopBtn = createBtn('Stop', '#e74c3c', 'STOP');
+
+            btnContainer.appendChild(submitBtn);
+            btnContainer.appendChild(skipBtn);
+            btnContainer.appendChild(stopBtn);
+
+            document.body.appendChild(container);
+
+            // Timer Logic
+            let timeLeft = 3;
+            const updateTimer = () => {
+                title.textContent = `Submitting in ${timeLeft}...`;
+                if (timeLeft <= 0) {
+                    cleanup('SUBMIT');
+                }
+                timeLeft--;
+            };
+
+            updateTimer();
+            const interval = setInterval(updateTimer, 1000);
+
+            function cleanup(action) {
+                clearInterval(interval);
+                if (container.parentNode) {
+                    container.parentNode.removeChild(container);
+                }
+                resolve(action); // Resolve promise with action
+            }
+        });
+    });
+}
+
+/**
+ * Process a single URL: Visit -> Fill -> (Interactive Wait) -> Submit -> Log.
  * Functional: Isolated execution scope.
  * @param {import('playwright').BrowserContext} context 
  * @param {string} link 
  * @param {Object} formData 
  * @param {Object} options
+ * @returns {Promise<'CONTINUE'|'STOP'>} 
  */
 async function processSingleLink(context, link, formData, options) {
     const page = await context.newPage();
@@ -107,10 +194,25 @@ async function processSingleLink(context, link, formData, options) {
 
         await fillForm(page, formData);
 
+        // --- Interactive Step ---
+        // If headless, we can't really do interactive, so strict 3s wait? 
+        // Or assume this feature implies headed mode (which is forced in main.js anyway)
+        const action = await waitForUserAction(page);
+        
+        console.log(`-> User Action: ${action}`);
+
+        if (action === 'STOP') {
+            return 'STOP';
+        }
+        
+        if (action === 'SKIP') {
+            return 'CONTINUE';
+        }
+
+        // Action is SUBMIT (either auto or manual)
         if (options.dryRun) {
-            console.log("-> [TEST MODE] Skipping submission. Form filled successfully.");
-            // Wait briefly to allow visual inspection during auto-play
-            await page.waitForTimeout(2000); 
+            console.log("-> [TEST MODE] Skipping submission (User allowed submit).");
+            await page.waitForTimeout(1000); 
         } else {
             await submitForm(page);
             console.log(`-> Submission successful for: ${link}`);
@@ -122,6 +224,7 @@ async function processSingleLink(context, link, formData, options) {
     } finally {
         await page.close();
     }
+    return 'CONTINUE';
 }
 
 /**
@@ -146,11 +249,17 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
 
         // Process sequentially to be polite (and functional)
         for (const link of links) {
-            await processSingleLink(context, link, formData, options);
+            const flowControl = await processSingleLink(context, link, formData, options);
             
-            // Random wait between separate submissions
-            const ms = 1000 + Math.random() * 2000;
-            await new Promise(r => setTimeout(r, ms)); 
+            if (flowControl === 'STOP') {
+                console.log("\n! Stop signal received. Halting batch processing.");
+                break;
+            }
+
+            // Random wait between separate submissions (if not stopped)
+            // We use a shorter wait now because the interactive countdown adds delay naturally
+            // But let's keep a small minimal one for politeness if they clicked 'Submit Now' instantly
+            await new Promise(r => setTimeout(r, 1000)); 
         }
 
     } catch (e) {
