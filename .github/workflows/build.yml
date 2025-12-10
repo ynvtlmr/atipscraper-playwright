@@ -67,7 +67,7 @@ jobs:
         # Use a simple PowerShell command to find the resulting executable
         id: find_exe
         run: |
-          $exePath = Get-ChildItem -Path . -Filter *.exe | Select-Object -ExpandProperty FullName
+          $exePath = Get-ChildItem -Path . -Filter *.exe | Select-Object -ExpandProperty Name
           echo "EXECUTABLE_PATH=$exePath" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
