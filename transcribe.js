@@ -215,54 +215,16 @@ async function processSingleLink(context, link, formData, options) {
     return { action: 'CONTINUE', result };
 }
 
-function generateSummaryHtml(results) {
-    const rows = results.map(r => `
-        <tr class="${r.status.toLowerCase().includes('error') ? 'error' : r.status.toLowerCase()}">
-            <td><a href="${r.url}" target="_blank">${r.url}</a></td>
-            <td>${new Date(r.timestamp).toLocaleString()}</td>
-            <td>${r.status}</td>
-        </tr>
-    `).join('');
+const ejs = require('ejs');
+const SUMMARY_TEMPLATE_PATH = path.join(process.cwd(), 'templates', 'summary.ejs');
 
-    return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Submission Summary</title>
-        <style>
-            body { font-family: -apple-system, system-ui, sans-serif; padding: 40px; background: #f4f7f6; }
-            h1 { text-align: center; color: #2c3e50; }
-            table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; }
-            th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background-color: #f8f9fa; font-weight: 600; color: #555; }
-            tr:hover { background-color: #f1f1f1; }
-            .submitted { color: #27ae60; font-weight: bold; }
-            .test_submitted { color: #2980b9; font-weight: bold; }
-            .skipped { color: #f39c12; }
-            .error { color: #c0392b; }
-            button { display: block; margin: 0 auto; padding: 12px 24px; background: #34495e; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
-            button:hover { background: #2c3e50; }
-        </style>
-    </head>
-    <body>
-        <h1>Submission Summary</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>URL</th>
-                    <th>Timestamp</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows}
-            </tbody>
-        </table>
-        <button onclick="window.close()">Close Summary & Exit</button>
-    </body>
-    </html>
-    `;
+async function generateSummaryHtml(results) {
+    try {
+        const template = await fs.readFile(SUMMARY_TEMPLATE_PATH, 'utf-8');
+        return ejs.render(template, { results });
+    } catch (e) {
+        return `<h1>Error generating summary</h1><pre>${e.message}</pre>`;
+    }
 }
 
 /**
@@ -307,7 +269,7 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
         if (results.length > 0) {
             logger.info("\nGenerating summary page...");
             const summaryPage = await context.newPage();
-            await summaryPage.setContent(generateSummaryHtml(results));
+            await summaryPage.setContent(await generateSummaryHtml(results));
             
             // Wait indefinitely for user to close the page manually (which closes context/browser indirectly if single tab)
             // OR specifically wait for the page close event
