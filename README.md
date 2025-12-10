@@ -10,9 +10,9 @@ It automates the following workflow:
 
 ## Features
 
-- **Visual Configuration**: A local web-based editor to easily configure your contact details and target search parameters.
+- **Visual Configuration**: A local web-based editor (`config_editor.js`) to easily configure your contact details and target search parameters.
 - **Smart Pagination**: Automatically traverses multiple pages of search results to find all relevant links.
-- **Interactive Control Panel**: During submission, a floating control panel allows you to:
+- **Interactive Control Panel**: During submission, a floating control panel injected into the browser allows you to:
   - **Submit Now**: Submit the current form immediately.
   - **Skip**: Skip the current form and proceed to the next one.
   - **Stop**: Halt the entire scraping process safely.
@@ -112,6 +112,7 @@ This project uses GitHub Actions for Continuous Integration and Deployment.
 
 - `main.js`: The entry point. Starts the config server which orchestrates the pipeline (Config -> Scrape -> Filter -> Submit).
 - `config_editor.js`: Code for the local configuration web server/UI. Handles dynamic port allocation.
+- `config_handler.js`: Pure logic for loading and validating configuration from `form_data.json`.
 - `scrape_links.js`: Logic for traversing search result pages and extracting links.
 - `transcribe.js`: Logic for visiting individual request pages, filling forms, and handling the interactive control panel.
 - `logger.js`: Customized logger supporting console output and file logging (`latest.log`).
@@ -120,7 +121,10 @@ This project uses GitHub Actions for Continuous Integration and Deployment.
 - `urls.csv`: A history log of all URLs that have been successfully processed/submitted.
 - `scraped_results.csv`: A log of all links found during the last scrape.
 - `latest.log`: Log file from the most recent run (do not share if containing sensitive info).
-- `tests/`: functionality tests using Playwright.
+- `templates/`: Contains EJS templates.
+  - `config_form.ejs`: The HTML template for the configuration UI.
+  - `summary.ejs`: The HTML template for the submission summary page.
+- `tests/`: Functionality tests using Playwright.
 - `examples/`: Sample HTML files used for testing.
 
 ## Testing
