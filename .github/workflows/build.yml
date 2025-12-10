@@ -8,6 +8,10 @@ on:
       - master
   workflow_dispatch:
     # Allows manual triggering from the GitHub Actions UI
+  pull_request:
+    branches:
+      - main
+      - master
 
 permissions:
   contents: write
