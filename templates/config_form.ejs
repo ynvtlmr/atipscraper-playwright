@@ -100,11 +100,30 @@
             <div style="display: flex; gap: 20px;">
                 <div class="form-group" style="flex: 1;">
                     <label for="state_province">Province</label>
-                    <input type="text" id="state_province" name="state_province" value="<%= data.state_province || '' %>">
+                    <select id="state_province" name="state_province">
+                        <option value="" <%= !data.state_province ? 'selected' : '' %>>Select Province</option>
+                        <option value="Alberta" <%= data.state_province === 'Alberta' ? 'selected' : '' %>>Alberta</option>
+                        <option value="British Columbia" <%= data.state_province === 'British Columbia' ? 'selected' : '' %>>British Columbia</option>
+                        <option value="Manitoba" <%= data.state_province === 'Manitoba' ? 'selected' : '' %>>Manitoba</option>
+                        <option value="New Brunswick" <%= data.state_province === 'New Brunswick' ? 'selected' : '' %>>New Brunswick</option>
+                        <option value="Newfoundland and Labrador" <%= data.state_province === 'Newfoundland and Labrador' ? 'selected' : '' %>>Newfoundland and Labrador</option>
+                        <option value="Northwest Territories" <%= data.state_province === 'Northwest Territories' ? 'selected' : '' %>>Northwest Territories</option>
+                        <option value="Nova Scotia" <%= data.state_province === 'Nova Scotia' ? 'selected' : '' %>>Nova Scotia</option>
+                        <option value="Nunavut" <%= data.state_province === 'Nunavut' ? 'selected' : '' %>>Nunavut</option>
+                        <option value="Ontario" <%= data.state_province === 'Ontario' ? 'selected' : '' %>>Ontario</option>
+                        <option value="Prince Edward Island" <%= data.state_province === 'Prince Edward Island' ? 'selected' : '' %>>Prince Edward Island</option>
+                        <option value="Quebec" <%= data.state_province === 'Quebec' ? 'selected' : '' %>>Quebec</option>
+                        <option value="Saskatchewan" <%= data.state_province === 'Saskatchewan' ? 'selected' : '' %>>Saskatchewan</option>
+                        <option value="Yukon" <%= data.state_province === 'Yukon' ? 'selected' : '' %>>Yukon</option>
+                    </select>
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label for="country">Country</label>
-                    <input type="text" id="country" name="country" value="<%= data.country || 'Canada' %>">
+                    <select id="country" name="country">
+                        <option value="Canada" <%= data.country === 'Canada' || !data.country ? 'selected' : '' %>>Canada</option>
+                        <option value="United States" <%= data.country === 'United States' ? 'selected' : '' %>>United States</option>
+                        <option value="Other" <%= data.country === 'Other' ? 'selected' : '' %>>Other</option>
+                    </select>
                 </div>
             </div>
 
@@ -121,6 +140,12 @@
                     <option value="Yes" <%= data.consent === 'Yes' ? 'selected' : '' %>>Yes</option>
                     <option value="No" <%= data.consent === 'No' ? 'selected' : '' %>>No</option>
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label for="countdown_seconds">Countdown Duration (seconds)</label>
+                <input type="number" id="countdown_seconds" name="countdown_seconds" value="<%= data.countdown_seconds || 5 %>" min="1" max="60">
+                <div class="help">Time before auto-submit in Live Mode (1-60 seconds, default: 5)</div>
             </div>
 
             <div class="form-group">

@@ -6,6 +6,7 @@ const transcribeAndSubmit = require('./transcribe');
 const fs = require('fs/promises');
 const path = require('path');
 const logger = require('./logger');
+const browserRegistry = require('./browser_registry');
 
 // --- Helper Pure Functions ---
 
@@ -74,9 +75,11 @@ async function runPipeline(options = {}) {
     }
 
     // 4. Execution Phase
+    const countdownSeconds = Number(formData.countdown_seconds) || 5;
     await transcribeAndSubmit(formData, newLinks, { 
         headless,
-        dryRun: isDryRun 
+        dryRun: isDryRun,
+        countdownSeconds
     });
     
     logger.info("--- Pipeline finished successfully! ---");
@@ -84,8 +87,9 @@ async function runPipeline(options = {}) {
 
 // --- Graceful Exit ---
 process.on('SIGINT', async () => {
-    logger.info("\nCaught interrupt signal (SIGINT). Exiting gracefully...");
-    // Future: Add logic here to close browsers if they are exposed globally or via an event bus
+    logger.info("\nCaught interrupt signal (SIGINT). Closing browsers...");
+    await browserRegistry.closeAll();
+    logger.info("Browsers closed. Exiting.");
     process.exit(0);
 });
 

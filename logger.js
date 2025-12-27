@@ -4,16 +4,23 @@ const path = require('path');
 class Logger {
     constructor() {
         this.logFile = path.join(process.cwd(), 'latest.log');
-        // Clear log file on startup
-        fs.writeFileSync(this.logFile, '', 'utf-8');
+        // Use a write stream for non-blocking I/O
+        this.stream = fs.createWriteStream(this.logFile, { flags: 'w', encoding: 'utf-8' });
+        
+        // Ensure stream is closed on process exit
+        process.on('exit', () => this.close());
+        process.on('SIGINT', () => this.close());
+        process.on('SIGTERM', () => this.close());
     }
 
     _write(level, message) {
         const timestamp = new Date().toISOString();
         const logEntry = `[${timestamp}] [${level}] ${message}\n`;
         
-        // Write to file
-        fs.appendFileSync(this.logFile, logEntry, 'utf-8');
+        // Write to file stream (non-blocking)
+        if (this.stream && !this.stream.destroyed) {
+            this.stream.write(logEntry);
+        }
 
         // Write to console with colors
         const colors = {
@@ -37,6 +44,12 @@ class Logger {
 
     error(message) {
         this._write('ERROR', message);
+    }
+
+    close() {
+        if (this.stream && !this.stream.destroyed) {
+            this.stream.end();
+        }
     }
 }
 

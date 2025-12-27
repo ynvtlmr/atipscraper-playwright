@@ -2,6 +2,7 @@
 const playwright = require('playwright');
 const logger = require('./logger');
 const selectors = require('./selectors.json');
+const browserRegistry = require('./browser_registry');
 
 /**
  * Pure helper to wait for a random duration (Human behavior simulation)
@@ -67,9 +68,13 @@ async function getPaginationState(page) {
  * Main orchestrator function.
  * Manages the side-effects (Browser interactions) while delegating logic to pure functions.
  * @param {string} url 
+ * @param {import('playwright').Page} existingPage - Optional page fixture for testing
+ * @param {Object} options
+ * @param {boolean} options.headless - Run browser in headless mode
+ * @param {number} options.maxPages - Maximum pages to scrape (default: 100)
  * @returns {Promise<string[]>}
  */
-async function scrapeLinks(url, existingPage = null, options = { headless: true }) {
+async function scrapeLinks(url, existingPage = null, options = { headless: true, maxPages: 100 }) {
     let browser;
     const allUniqueLinks = new Set();
     let page = existingPage;
@@ -84,6 +89,7 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
                 logger.info("System Chrome not found, using bundled browser...");
                 browser = await playwright.chromium.launch({ headless: options.headless, args: launchArgs });
             }
+            browserRegistry.register(browser);
             page = await browser.newPage();
         }
         
@@ -101,8 +107,9 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
 
         let pageNum = 1;
         let scraping = true;
+        const maxPages = options.maxPages || 100;
 
-        while (scraping) {
+        while (scraping && pageNum <= maxPages) {
             // 1. Extract Data
             const pageLinks = await extractLinksFromPage(page);
             const countBefore = allUniqueLinks.size;
@@ -128,10 +135,17 @@ async function scrapeLinks(url, existingPage = null, options = { headless: true 
             }
         }
 
+        if (pageNum > maxPages) {
+            logger.warn(`Reached maximum page limit (${maxPages}). Stopping pagination.`);
+        }
+
     } catch (e) {
         logger.error(`Scraping Error: ${e.message}`);
     } finally {
-        if (browser) await browser.close();
+        if (browser) {
+            browserRegistry.unregister(browser);
+            await browser.close();
+        }
     }
 
     return Array.from(allUniqueLinks);

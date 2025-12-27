@@ -4,6 +4,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const logger = require('./logger');
 const selectors = require('./selectors.json');
+const browserRegistry = require('./browser_registry');
 
 const ID_MAP = selectors.form;
 
@@ -12,10 +13,28 @@ const DROPDOWN_KEYS = [
     "country", "preferred_language", "consent",
 ];
 
+/**
+ * Escapes a string for safe inclusion in a CSV field.
+ * Wraps in quotes and escapes internal quotes.
+ * @param {string} value 
+ * @returns {string}
+ */
+function escapeCsvField(value) {
+    if (typeof value !== 'string') {
+        return String(value);
+    }
+    // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+    if (value.includes(',') || value.includes('\n') || value.includes('\r') || value.includes('"')) {
+        return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+}
+
 async function logSubmittedUrl(link) {
     const csvPath = path.join(process.cwd(), 'urls.csv');
     try {
-        await fs.appendFile(csvPath, `${link}\n`, 'utf-8');
+        const escapedLink = escapeCsvField(link);
+        await fs.appendFile(csvPath, `${escapedLink}\n`, 'utf-8');
     } catch (error) {
         logger.warn(`Warning: Could not log submitted URL to urls.csv: ${error.message}`);
     }
@@ -75,10 +94,11 @@ async function submitForm(page) {
 /**
  * Injects a countdown overlay and waits for user action or timeout.
  * @param {import('playwright').Page} page
+ * @param {number} countdownSeconds - Number of seconds for the countdown (default: 5)
  * @returns {Promise<'SUBMIT'|'SKIP'|'STOP'>}
  */
-async function waitForUserAction(page) {
-    return page.evaluate(() => {
+async function waitForUserAction(page, countdownSeconds = 5) {
+    return page.evaluate((seconds) => {
         return new Promise((resolve) => {
             // Create container
             const container = document.createElement('div');
@@ -134,8 +154,8 @@ async function waitForUserAction(page) {
 
             document.body.appendChild(container);
 
-            // Timer Logic
-            let timeLeft = 5; // UPDATED to 5 seconds
+            // Timer Logic - use configurable seconds
+            let timeLeft = seconds;
             const updateTimer = () => {
                 title.textContent = `Submitting in ${timeLeft}...`;
                 if (timeLeft <= 0) {
@@ -155,7 +175,7 @@ async function waitForUserAction(page) {
                 resolve(action); // Resolve promise with action
             }
         });
-    });
+    }, countdownSeconds);
 }
 
 /**
@@ -183,7 +203,8 @@ async function processSingleLink(context, link, formData, options) {
         await fillForm(page, formData);
 
         // --- Interactive Step ---
-        const action = await waitForUserAction(page);
+        const countdownSeconds = options.countdownSeconds || 5;
+        const action = await waitForUserAction(page, countdownSeconds);
         logger.info(`-> User Action: ${action}`);
 
         if (action === 'STOP') {
@@ -232,8 +253,11 @@ async function generateSummaryHtml(results) {
  * @param {Object} formData 
  * @param {string[]} links 
  * @param {Object} options
+ * @param {boolean} options.headless - Run browser in headless mode
+ * @param {boolean} options.dryRun - If true, don't actually submit forms
+ * @param {number} options.countdownSeconds - Countdown duration before auto-submit (default: 5)
  */
-async function transcribeAndSubmit(formData, links, options = { headless: true, dryRun: false }) {
+async function transcribeAndSubmit(formData, links, options = { headless: true, dryRun: false, countdownSeconds: 5 }) {
     let browser;
     try {
         // Browser Launch Strategy
@@ -244,6 +268,7 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
             logger.info("System Chrome not found, using bundled browser...");
             browser = await playwright.chromium.launch({ headless: options.headless, args: launchArgs });
         }
+        browserRegistry.register(browser);
 
         const context = await browser.newContext();
         logger.info(`Starting submission of ${links.length} forms...`);
@@ -280,10 +305,14 @@ async function transcribeAndSubmit(formData, links, options = { headless: true, 
     } catch (e) {
         logger.error(`Browser Batch Error: ${e.message}`);
     } finally {
-        if (browser) await browser.close();
+        if (browser) {
+            browserRegistry.unregister(browser);
+            await browser.close();
+        }
     }
 }
 
 module.exports = transcribeAndSubmit;
 module.exports.fillForm = fillForm;
 module.exports.submitForm = submitForm;
+module.exports.escapeCsvField = escapeCsvField;

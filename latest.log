@@ -1,29 +1,8 @@
-[2025-12-10T03:41:25.666Z] [INFO] --- ATIP Scraper (Node.js/Playwright) ---
-[2025-12-10T03:41:25.666Z] [INFO] Mode: TEST | Headless: false
-[2025-12-10T03:41:25.667Z] [INFO] Starting scraper...
-[2025-12-10T03:41:25.863Z] [INFO] Navigating to initial URL: https://open.canada.ca/en/search/ati?ati%5B0%5D=ati_disposition_en%3AAll%20disclosed&ati%5B1%5D=ati_month_en%3AMay&ati%5B2%5D=ati_organization_en%3APublic%20Services%20and%20Procurement%20Canada&ati%5B3%5D=ati_year_en%3A2023
-[2025-12-10T03:41:30.667Z] [INFO] Page 1: Extracted 7 links. (7 new unique)
-[2025-12-10T03:41:30.669Z] [INFO] Pagination ended.
-[2025-12-10T03:41:30.795Z] [INFO] Found 7 total unique links.
-[2025-12-10T03:41:30.796Z] [INFO] Saved all scraped links to C:\Users\Yaniv\Documents\CODE\AtipScraper2\scraped_results.csv
-[2025-12-10T03:41:30.796Z] [INFO] Stats: 0 previously submitted. 7 new to process.
-[2025-12-10T03:41:30.899Z] [INFO] Starting submission of 7 forms...
-[2025-12-10T03:41:30.980Z] [INFO] 
-Navigating to: https://open.canada.ca/en/search/ati/reference/ca09761c1ff30d5c58ae6fcdb2fc12fd
-[2025-12-10T03:41:34.606Z] [INFO] -> User Action: SKIP
-[2025-12-10T03:41:35.655Z] [INFO] 
-Navigating to: https://open.canada.ca/en/search/ati/reference/51f68eb387fdfe72871725e3e148ee24
-[2025-12-10T03:41:37.158Z] [INFO] -> User Action: SUBMIT
-[2025-12-10T03:41:37.159Z] [INFO] -> [TEST MODE] Skipping submission (User allowed submit).
-[2025-12-10T03:41:39.212Z] [INFO] 
-Navigating to: https://open.canada.ca/en/search/ati/reference/2c8a1849f3c45a43155def3df22c817e
-[2025-12-10T03:41:40.738Z] [INFO] -> User Action: SKIP
-[2025-12-10T03:41:41.798Z] [INFO] 
-Navigating to: https://open.canada.ca/en/search/ati/reference/8b388e706c519ec682aa835e83010ce7
-[2025-12-10T03:41:43.400Z] [INFO] -> User Action: STOP
-[2025-12-10T03:41:43.404Z] [INFO] 
-! Stop signal received. Halting batch processing.
-[2025-12-10T03:41:43.405Z] [INFO] 
-Generating summary page...
-[2025-12-10T03:41:43.478Z] [INFO] Waiting for user to close the summary page...
-[2025-12-10T03:41:45.670Z] [INFO] --- Pipeline finished successfully! ---
+[2025-12-27T04:06:57.410Z] [INFO] Navigating to initial URL: https://open.canada.ca/en/search/ati?ati%5B0%5D=ati_disposition_en%3AAll%20disclosed[2025-12-27T04:06:58.391Z] [INFO] Page 1: Extracted 7 links. (7 new unique)
+[2025-12-27T04:06:58.395Z] [INFO] Pagination ended.
+[2025-12-27T0[2025-12-27T04:07:04.223Z] [INFO] Page 1: Extracted 7 links. (7 new unique)
+[2025-12-27T04:07:04.226Z] [INFO] Pagination ended.
+ror: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:9999/nonexistent
+Call log:
+[2m  - navigating to "http://localhost:9999/nonexistent", waiting until "domcontentloaded"[22m
+
